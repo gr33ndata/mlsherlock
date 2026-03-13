@@ -1,0 +1,47 @@
+# Secrets — never commit
+.env
+*.env
+
+# Python generated
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Dataset CSVs — fetch via demo/get_data.py or the download_data tool
+demo/data/
+datasets/titanic/*.csv
+datasets/housing/*.csv
+datasets/penguins/*.csv
+
+# Generated model outputs
+output/
+*.pkl
+*.joblib
+
+# macOS
+.DS_Store
+.DS_Store?
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
