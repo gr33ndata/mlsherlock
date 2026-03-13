@@ -84,10 +84,12 @@ class CliCallbacks(BaseCallbacks):
 
         console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{_ts()}[/dim]")
         console.print(f"  {question}")
+        console.print()
         if options:
             for i, opt in enumerate(options, 1):
                 console.print(f"  [dim]{i}.[/dim] {opt}")
-            raw = Prompt.ask(f"\n[{_USER_COLOR}]You[/{_USER_COLOR}]", default=options[0])
+            console.print()
+            raw = Prompt.ask(f"[{_USER_COLOR}]You[/{_USER_COLOR}]", default=options[0])
             try:
                 idx = int(raw) - 1
                 if 0 <= idx < len(options):
@@ -95,7 +97,7 @@ class CliCallbacks(BaseCallbacks):
             except ValueError:
                 pass
             return raw
-        return Prompt.ask(f"\n[{_USER_COLOR}]You[/{_USER_COLOR}]")
+        return Prompt.ask(f"[{_USER_COLOR}]You[/{_USER_COLOR}]")
 
     def on_plot(self, path: str) -> None:
         import os
