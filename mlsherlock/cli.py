@@ -17,6 +17,13 @@ def main() -> None:
 
 @main.command()
 @click.option(
+    "--provider",
+    default="openai",
+    show_default=True,
+    type=click.Choice(["anthropic", "openai"], case_sensitive=False),
+    help="LLM provider to use.",
+)
+@click.option(
     "--data",
     default=None,
     help=(
@@ -42,6 +49,7 @@ def main() -> None:
     help="Auto-approve all ask_user calls (picks first option).",
 )
 def train(
+    provider: str,
     data: str | None,
     target: str | None,
     task: str,
@@ -62,9 +70,15 @@ def train(
     console = Console()
 
     # Validate API key early
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    if provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
         console.print("[bold red]Error:[/bold red] ANTHROPIC_API_KEY environment variable not set.")
         console.print("Create a .env file with ANTHROPIC_API_KEY=your_key or export it in your shell.")
+        sys.exit(1)
+    if provider == "openai" and not (
+        os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
+    ):
+        console.print("[bold red]Error:[/bold red] OPENAI_API_KEY (or OPENAI_KEY) environment variable not set.")
+        console.print("Create a .env file with OPENAI_API_KEY=your_key or export it in your shell.")
         sys.exit(1)
 
     # Resolve data source and initial message for the agent
@@ -97,6 +111,7 @@ def train(
     console.print(f"  Task:         [bold]{task}[/bold]")
     console.print(f"  Output dir:   [bold]{output_dir}[/bold]")
     console.print(f"  Max iters:    [bold]{max_iterations}[/bold]")
+    console.print(f"  Provider:     [bold]{provider}[/bold]")
     console.print(f"  Interactive:  [bold]{'no' if non_interactive else 'yes'}[/bold]")
     console.print(Rule(style="cyan"))
 
@@ -115,7 +130,7 @@ def train(
     callbacks = CliCallbacks(non_interactive=non_interactive)
     executor = CodeExecutor()
 
-    loop = AgentLoop(state=state, callbacks=callbacks, executor=executor)
+    loop = AgentLoop(state=state, callbacks=callbacks, executor=executor, provider=provider)
 
     try:
         loop.run()
