@@ -31,6 +31,21 @@ class AgentLoop:
         self._state = state
         self._callbacks = callbacks
         self._executor = executor or CodeExecutor()
+        # Patch save_plot so inline calls from run_python use the correct output_dir
+        _output_dir = state.output_dir
+        def _save_plot(filename: str = "plot.png") -> str:
+            import os
+            import matplotlib.pyplot as plt
+            os.makedirs(_output_dir, exist_ok=True)
+            safe = os.path.basename(filename)
+            if not safe.endswith((".png", ".jpg", ".pdf", ".svg")):
+                safe += ".png"
+            path = os.path.join(_output_dir, safe)
+            plt.tight_layout()
+            plt.savefig(path, dpi=120, bbox_inches="tight")
+            plt.clf()
+            return path
+        self._executor.globals["save_plot"] = _save_plot
         self._provider: LLMProvider = get_provider(provider)
         self._history: list[dict[str, Any]] = []
 
