@@ -105,49 +105,77 @@ class AgentLoop:
         self._history.append(self._provider.make_assistant_history_entry(response))
 
         tool_results: list[dict[str, Any]] = []
+        inject_stuck_hint = False
         for tc in response.tool_calls:
             result = dispatch(tc.name, tc.input, self._state, self._executor, self._callbacks)
             is_error = result.startswith("[") and "error" in result[:20].lower()
             self._callbacks.on_tool_result(result, is_error)
-
             tool_results.append(
                 {"tool_call_id": tc.id, "content": result, "is_error": is_error}
             )
-
             if self._state.is_stuck:
-                tool_results.append(
-                    {
-                        "tool_call_id": tc.id,
-                        "content": (
-                            "[system hint] You have encountered the same error 3 times in a row. "
-                            "Try a completely different approach or simplify the code."
-                        ),
-                        "is_error": False,
-                    }
-                )
+                inject_stuck_hint = True
                 self._state._consecutive_same_error = 0
 
         if tool_results:
             for entry in self._provider.make_tool_results_history_entries(tool_results):
                 self._history.append(entry)
 
+        # Inject stuck hint as a plain user message — avoids duplicate tool_call_ids
+        if inject_stuck_hint:
+            self._history.append({
+                "role": "user",
+                "content": (
+                    "[system hint] You have encountered the same error 3 times in a row. "
+                    "Try a completely different approach or simplify the code."
+                ),
+            })
+
         if response.is_done:
             self._state.finished = True
 
     def _maybe_trim_history(self) -> None:
-        """Drop oldest tool results when history grows large."""
+        """Drop the oldest assistant+tool-results group when history grows large."""
         approx_chars = sum(len(json.dumps(msg)) for msg in self._history)
         if approx_chars < _CONTEXT_TRIM_THRESHOLD * 4 * 0.8:
             return
 
+        # Find the oldest assistant message that has tool calls, then remove it
+        # together with all immediately following tool-result messages so the
+        # history stays valid for both Anthropic and OpenAI.
         for i, msg in enumerate(self._history):
-            if msg["role"] == "user" and isinstance(msg["content"], list):
-                if any(
-                    isinstance(b, dict) and b.get("type") == "tool_result"
-                    for b in msg["content"]
-                ):
-                    self._history.pop(i)
-                    return
+            if msg["role"] != "assistant":
+                continue
+            content = msg.get("content")
+            has_tool_calls = (
+                # OpenAI format
+                bool(msg.get("tool_calls"))
+                # Anthropic format
+                or (
+                    isinstance(content, list)
+                    and any(
+                        isinstance(b, dict) and b.get("type") == "tool_use"
+                        for b in content
+                    )
+                )
+            )
+            if not has_tool_calls:
+                continue
+            # Found — collect the span: this assistant message + following tool results
+            end = i + 1
+            while end < len(self._history) and self._history[end]["role"] in ("tool", "user") and (
+                self._history[end]["role"] == "tool"
+                or (
+                    isinstance(self._history[end].get("content"), list)
+                    and any(
+                        isinstance(b, dict) and b.get("type") == "tool_result"
+                        for b in self._history[end]["content"]
+                    )
+                )
+            ):
+                end += 1
+            del self._history[i:end]
+            return
 
     def _maybe_inject_reminder(self) -> None:
         remaining = self._state.max_iterations - self._state.iteration

@@ -48,6 +48,12 @@ def main() -> None:
     default=False,
     help="Auto-approve all ask_user calls (picks first option).",
 )
+@click.option(
+    "-v", "--verbose",
+    is_flag=True,
+    default=False,
+    help="Show full agent reasoning and tool output.",
+)
 def train(
     provider: str,
     data: str | None,
@@ -56,6 +62,7 @@ def train(
     output_dir: str,
     max_iterations: int,
     non_interactive: bool,
+    verbose: bool,
 ) -> None:
     """Train and iteratively improve a model.
 
@@ -127,7 +134,7 @@ def train(
         output_dir=output_dir,
         max_iterations=max_iterations,
     )
-    callbacks = CliCallbacks(non_interactive=non_interactive)
+    callbacks = CliCallbacks(non_interactive=non_interactive, verbose=verbose)
     executor = CodeExecutor()
 
     loop = AgentLoop(state=state, callbacks=callbacks, executor=executor, provider=provider)

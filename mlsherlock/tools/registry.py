@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
@@ -51,6 +51,8 @@ class DownloadDataInput(BaseModel):
 
 
 class FinishInput(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     summary: str = Field(..., description="Final markdown summary of what was done and results achieved")
     model_variable: str = Field(
         ...,
