@@ -10,6 +10,79 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+_TARGET_HINTS = [
+    "target", "label", "labels", "class", "classes", "output",
+    "y", "survived", "price", "salary", "churn", "fraud", "diagnosis",
+    "result", "outcome", "response", "dependent",
+]
+
+
+def _infer_task(csv_path: str, target_col: str, console: "Console") -> str:  # type: ignore[name-defined]
+    """Infer classification vs regression from the target column."""
+    try:
+        import csv
+        values = []
+        with open(csv_path, newline="", encoding="utf-8", errors="replace") as f:
+            reader = csv.DictReader(f)
+            for i, row in enumerate(reader):
+                if i >= 500:  # sample up to 500 rows
+                    break
+                v = row.get(target_col, "").strip()
+                if v:
+                    values.append(v)
+    except Exception:
+        return "classification"
+
+    if not values:
+        return "classification"
+
+    unique = set(values)
+
+    # Try parsing as floats
+    try:
+        numeric = [float(v) for v in values]
+        unique_numeric = set(numeric)
+        # Binary or few distinct integers → classification
+        if len(unique_numeric) <= 2:
+            task = "classification"
+        elif all(float(v) == int(float(v)) for v in unique) and len(unique_numeric) <= 20:
+            task = "classification"
+        else:
+            task = "regression"
+    except ValueError:
+        # Non-numeric → classification
+        task = "classification"
+
+    console.print(f"  [dim]No --task given — inferred: [bold]{task}[/bold] ({len(unique)} unique target values)[/dim]")
+    return task
+
+
+def _infer_target(csv_path: str, console: "Console") -> str | None:  # type: ignore[name-defined]
+    """Peek at the CSV header and pick the most likely target column."""
+    try:
+        with open(csv_path, newline="", encoding="utf-8", errors="replace") as f:
+            header = f.readline().strip().split(",")
+        cols = [c.strip().strip('"').strip("'") for c in header]
+    except Exception:
+        return None
+
+    if not cols:
+        return None
+
+    # 1. Exact match against known target names (case-insensitive)
+    lower = [c.lower() for c in cols]
+    for hint in _TARGET_HINTS:
+        if hint in lower:
+            inferred = cols[lower.index(hint)]
+            console.print(f"  [dim]No --target given — inferred: [bold]{inferred}[/bold][/dim]")
+            return inferred
+
+    # 2. Fall back to last column (very common convention)
+    inferred = cols[-1]
+    console.print(f"  [dim]No --target given — using last column: [bold]{inferred}[/bold][/dim]")
+    return inferred
+
+
 @click.group()
 def main() -> None:
     """mlsherlock — an intelligent ML agent that diagnoses and improves your models."""
@@ -35,10 +108,9 @@ def main() -> None:
 @click.option("--target", default=None, help="Target column name. Required when --data is a local file.")
 @click.option(
     "--task",
-    default="classification",
-    show_default=True,
+    default=None,
     type=click.Choice(["classification", "regression"], case_sensitive=False),
-    help="ML task type.",
+    help="ML task type. Inferred from target column if not given.",
 )
 @click.option("--output-dir", default="./output", show_default=True, help="Directory for model and plots.")
 @click.option("--max-iterations", default=20, show_default=True, type=int, help="Max agent iterations.")
@@ -97,16 +169,24 @@ def train(
     if data is None:
         # No --data given: agent will ask interactively
         data_source = "(none — agent will ask)"
+        if not task:
+            task = "classification"
     elif os.path.exists(data):
         # Local file path
-        if not target:
-            console.print("[bold red]Error:[/bold red] --target is required when --data is a local file.")
-            sys.exit(1)
         data_path = os.path.abspath(data)
         data_source = data_path
+        if not target:
+            target = _infer_target(data_path, console)
+            if not target:
+                console.print("[bold red]Error:[/bold red] Could not infer target column. Pass --target explicitly.")
+                sys.exit(1)
+        if not task:
+            task = _infer_task(data_path, target, console)
     elif data in _NAMED_DATASETS or ("/" in data and not data.startswith("/")):
         # Named dataset or Kaggle slug — agent will download it
         data_source = data
+        if not task:
+            task = "classification"
     else:
         console.print(f"[bold red]Error:[/bold red] File not found and not a known dataset: {data!r}")
         console.print("Pass a local CSV path, a named dataset (titanic, iris, penguins, tips), or a Kaggle slug.")
