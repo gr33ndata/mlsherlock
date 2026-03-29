@@ -77,17 +77,22 @@ class CodeExecutor:
 
         Returns (stdout_output, error_message).  error_message is "" on success.
         Timeouts return a descriptive error string — they do NOT kill the thread
-        (Python limitation) but they do surface the issue to the agent.
+        (Python limitation).  Each execution runs in a shallow copy of globals so
+        a timed-out thread cannot mutate the persistent sandbox state; the copy is
+        merged back into self._globals only on successful completion.
         """
         from mlsherlock.execution.capture import ExecutionCapture
 
+        # Shallow copy so a timed-out (still-running) thread writes into its own
+        # dict and cannot corrupt the persistent globals.
+        exec_globals: dict[str, Any] = dict(self._globals)
         result_holder: dict[str, Any] = {"capture": None, "error": ""}
 
         def _run() -> None:
             cap = ExecutionCapture()
             with cap:
                 try:
-                    exec(code, self._globals)  # noqa: S102
+                    exec(code, exec_globals)  # noqa: S102
                 except Exception as exc:  # noqa: BLE001
                     import traceback
                     result_holder["error"] = traceback.format_exc()
@@ -98,10 +103,13 @@ class CodeExecutor:
         thread.join(timeout=timeout)
 
         if thread.is_alive():
+            # Thread keeps running in its own copy; self._globals is unaffected.
             return "", f"TimeoutError: execution exceeded {timeout}s"
 
         cap: ExecutionCapture = result_holder["capture"]
         if cap is None:
             return "", result_holder["error"]
 
+        # Merge new/modified variables back into the persistent namespace.
+        self._globals.update(exec_globals)
         return cap.combined, result_holder["error"]

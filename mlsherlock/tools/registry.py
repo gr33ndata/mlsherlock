@@ -146,7 +146,7 @@ def dispatch(
 
     if name == "ask_user":
         parsed = AskUserInput(**tool_input)
-        return ask_user.run(parsed.question, parsed.options, state, executor, callbacks)
+        return ask_user.run(parsed.question, parsed.options, callbacks)
 
     if name == "save_plot":
         parsed = SavePlotInput(**tool_input)
@@ -154,7 +154,7 @@ def dispatch(
 
     if name == "download_data":
         parsed = DownloadDataInput(**tool_input)
-        return download_data.run(parsed.source, parsed.destination, state, executor, callbacks)
+        return download_data.run(parsed.source, parsed.destination, state, callbacks)
 
     if name == "finish":
         parsed = FinishInput(**tool_input)

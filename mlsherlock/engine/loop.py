@@ -48,12 +48,17 @@ class AgentLoop:
         self._executor.globals["save_plot"] = _save_plot
         self._provider: LLMProvider = get_provider(provider)
         self._history: list[dict[str, Any]] = []
+        self._approx_history_chars: int = 0
 
     # ── Public ───────────────────────────────────────────────────────────────
 
+    def _append_history(self, entry: dict[str, Any]) -> None:
+        self._history.append(entry)
+        self._approx_history_chars += len(json.dumps(entry))
+
     def run(self) -> None:
         """Run the agent loop until `finish` is called or max_iterations reached."""
-        self._history.append({"role": "user", "content": self._initial_user_message()})
+        self._append_history({"role": "user", "content": self._initial_user_message()})
 
         while not self._state.finished and self._state.iteration < self._state.max_iterations:
             self._state.iteration += 1
@@ -102,7 +107,7 @@ class AgentLoop:
             input_preview = json.dumps(tc.input, indent=2)[:500]
             self._callbacks.on_tool_call(tc.name, input_preview)
 
-        self._history.append(self._provider.make_assistant_history_entry(response))
+        self._append_history(self._provider.make_assistant_history_entry(response))
 
         tool_results: list[dict[str, Any]] = []
         inject_stuck_hint = False
@@ -115,15 +120,15 @@ class AgentLoop:
             )
             if self._state.is_stuck:
                 inject_stuck_hint = True
-                self._state._consecutive_same_error = 0
+                self._state.reset_stuck_detection()
 
         if tool_results:
             for entry in self._provider.make_tool_results_history_entries(tool_results):
-                self._history.append(entry)
+                self._append_history(entry)
 
         # Inject stuck hint as a plain user message — avoids duplicate tool_call_ids
         if inject_stuck_hint:
-            self._history.append({
+            self._append_history({
                 "role": "user",
                 "content": (
                     "[system hint] You have encountered the same error 3 times in a row. "
@@ -136,8 +141,7 @@ class AgentLoop:
 
     def _maybe_trim_history(self) -> None:
         """Drop the oldest assistant+tool-results group when history grows large."""
-        approx_chars = sum(len(json.dumps(msg)) for msg in self._history)
-        if approx_chars < _CONTEXT_TRIM_THRESHOLD * 4 * 0.8:
+        if self._approx_history_chars < _CONTEXT_TRIM_THRESHOLD * 4 * 0.8:
             return
 
         # Find the oldest assistant message that has tool calls, then remove it
@@ -174,13 +178,16 @@ class AgentLoop:
                 )
             ):
                 end += 1
+            self._approx_history_chars -= sum(
+                len(json.dumps(m)) for m in self._history[i:end]
+            )
             del self._history[i:end]
             return
 
     def _maybe_inject_reminder(self) -> None:
         remaining = self._state.max_iterations - self._state.iteration
         if remaining in (5, 2):
-            self._history.append(
+            self._append_history(
                 {
                     "role": "user",
                     "content": (

@@ -19,7 +19,6 @@ class AgentState:
     finished: bool = False
 
     # Error tracking for stuck-detection
-    _recent_errors: list[str] = field(default_factory=list, repr=False)
     _consecutive_same_error: int = 0
     _last_error_hash: Optional[str] = None
 
@@ -32,9 +31,13 @@ class AgentState:
         else:
             self._consecutive_same_error = 1
             self._last_error_hash = h
-        self._recent_errors.append(error)
 
     @property
     def is_stuck(self) -> bool:
         """True if the same error has occurred 3+ times in a row."""
         return self._consecutive_same_error >= 3
+
+    def reset_stuck_detection(self) -> None:
+        """Reset the stuck-detection counters after injecting a hint."""
+        self._consecutive_same_error = 0
+        self._last_error_hash = None

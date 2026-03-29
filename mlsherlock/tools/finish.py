@@ -18,6 +18,9 @@ def run(
     callbacks: "BaseCallbacks",
 ) -> str:
     """Persist the model and emit a final summary."""
+    if not model_variable.isidentifier():
+        return f"[finish error] Invalid model variable name: {model_variable!r}. Must be a plain Python identifier."
+
     os.makedirs(state.output_dir, exist_ok=True)
     model_path = os.path.join(state.output_dir, "model.pkl")
 

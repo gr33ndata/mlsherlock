@@ -1,13 +1,14 @@
 """Tool: download_data — download a dataset from a URL or Kaggle into output_dir."""
 from __future__ import annotations
 
+import ipaddress
 import os
 import urllib.request
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
-    from mlsherlock.execution.sandbox import CodeExecutor
     from mlsherlock.engine.callbacks import BaseCallbacks
 
 # Well-known named datasets resolvable without extra packages
@@ -20,11 +21,25 @@ _NAMED_DATASETS: dict[str, str] = {
 }
 
 
+def _is_safe_url(url: str) -> bool:
+    """Reject URLs that point to private/loopback IP addresses (basic SSRF guard)."""
+    try:
+        host = urlparse(url).hostname
+        if host is None:
+            return False
+        addr = ipaddress.ip_address(host)
+        return addr.is_global and not addr.is_private and not addr.is_loopback and not addr.is_link_local
+    except ValueError:
+        # hostname (not a bare IP) — allow; DNS-based SSRF is out of scope here
+        return True
+    except Exception:
+        return False
+
+
 def run(
     source: str,
     destination: str,
     state: "AgentState",
-    executor: "CodeExecutor",
     callbacks: "BaseCallbacks",
 ) -> str:
     """
@@ -35,23 +50,33 @@ def run(
       - A direct HTTP/HTTPS URL to a CSV file
       - A Kaggle dataset slug: "username/dataset-name" (requires kaggle package + ~/.kaggle/kaggle.json)
     destination:
-      - Local file path where the CSV will be saved (e.g. "data/titanic.csv")
+      - Local file path where the CSV will be saved (relative to output_dir)
     """
-    os.makedirs(os.path.dirname(os.path.abspath(destination)), exist_ok=True) if os.path.dirname(destination) else None
+    # Ensure destination stays inside output_dir
+    abs_dest = os.path.realpath(destination)
+    abs_output = os.path.realpath(state.output_dir)
+    if not abs_dest.startswith(abs_output + os.sep) and abs_dest != abs_output:
+        return "[error] Destination must be inside the output directory."
+
+    dest_dir = os.path.dirname(abs_dest)
+    if dest_dir:
+        os.makedirs(dest_dir, exist_ok=True)
 
     # Resolve named datasets
     url: str | None = None
     if source in _NAMED_DATASETS:
         url = _NAMED_DATASETS[source]
     elif source.startswith("http://") or source.startswith("https://"):
+        if not _is_safe_url(source):
+            return f"[error] URL points to a private or loopback address and cannot be fetched: {source!r}"
         url = source
 
     if url:
-        return _download_url(url, destination)
+        return _download_url(url, abs_dest)
 
     # Kaggle dataset (format: "owner/dataset-name")
     if "/" in source and not source.startswith("http"):
-        return _download_kaggle(source, destination)
+        return _download_kaggle(source, abs_dest)
 
     return (
         f"[error] Could not resolve source: {source!r}\n"
