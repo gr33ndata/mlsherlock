@@ -17,11 +17,11 @@ _RESULT_PREVIEW_LINES = 5
 _RESULT_PREVIEW_CHARS = 400
 
 
-def _ts() -> str:
+def ts() -> str:
     return datetime.now().strftime("%H:%M")
 
 
-def _first_sentence(text: str, maxlen: int = 120) -> str:
+def first_sentence(text: str, maxlen: int = 120) -> str:
     """Extract the first meaningful sentence from agent text."""
     for line in text.splitlines():
         line = line.strip()
@@ -34,7 +34,7 @@ def _first_sentence(text: str, maxlen: int = 120) -> str:
     return text[:maxlen]
 
 
-def _key_metric_line(result: str) -> str | None:
+def key_metric_line(result: str) -> str | None:
     """Return the first line that looks like a metric (contains % or accuracy/score words)."""
     for line in result.splitlines():
         line = line.strip()
@@ -45,7 +45,7 @@ def _key_metric_line(result: str) -> str | None:
     return None
 
 
-def _compact_input(name: str, input_preview: str) -> str:
+def compact_input(name: str, input_preview: str) -> str:
     import json
     try:
         d = json.loads(input_preview)
@@ -65,7 +65,7 @@ def _compact_input(name: str, input_preview: str) -> str:
     return "  ".join(f"{k}={str(v)[:40]}" for k, v in d.items())
 
 
-def _trim_result(result: str) -> str:
+def trim_result(result: str) -> str:
     lines = [l for l in result.splitlines() if l.strip()]
     preview = "\n".join(lines[:_RESULT_PREVIEW_LINES])
     if len(lines) > _RESULT_PREVIEW_LINES:
@@ -82,18 +82,18 @@ class CliCallbacks:
 
     def on_message(self, text: str) -> None:
         if self._verbose:
-            console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{_ts()}[/dim]")
+            console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{ts()}[/dim]")
             for line in text.strip().splitlines():
                 console.print(f"  {line}")
             console.print()
         else:
-            summary = _first_sentence(text)
-            console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{_ts()}[/dim]")
+            summary = first_sentence(text)
+            console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{ts()}[/dim]")
             console.print(f"  {summary}")
 
     def on_tool_call(self, name: str, input_preview: str) -> None:
         if self._verbose:
-            label = _compact_input(name, input_preview)
+            label = compact_input(name, input_preview)
             console.print(f"  [dim]🔍 {name}  {label}[/dim]")
         # terse: silent — the result line tells the story
 
@@ -102,12 +102,12 @@ class CliCallbacks:
             first_line = next((l for l in result.splitlines() if l.strip()), result)
             console.print(f"  [red]✗ {first_line[:200]}[/red]")
         elif self._verbose:
-            preview = _trim_result(result)
+            preview = trim_result(result)
             if preview and preview != "(no output)":
                 for line in preview.splitlines():
                     console.print(f"  [dim]{line}[/dim]")
         else:
-            metric = _key_metric_line(result)
+            metric = key_metric_line(result)
             if metric:
                 console.print(f"  [dim]→ {metric}[/dim]")
 
@@ -117,7 +117,7 @@ class CliCallbacks:
             console.print(f"  [dim]auto → {answer}[/dim]")
             return answer
 
-        console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{_ts()}[/dim]")
+        console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{ts()}[/dim]")
         console.print(f"  {question}")
         console.print()
         if options:
@@ -139,7 +139,7 @@ class CliCallbacks:
         console.print(f"  [dim]📊 {os.path.basename(path)}[/dim]")
 
     def on_finish(self, summary: str, model_path: str) -> None:
-        console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{_ts()}[/dim]")
+        console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{ts()}[/dim]")
         console.print(f"  ✅ Done. Model saved to [bold]{model_path}[/bold]\n")
         for line in summary.strip().splitlines():
             console.print(f"  {line}")

@@ -22,7 +22,7 @@ class AgentLoop:
     def __init__(
         self,
         state: AgentState,
-        callbacks: BaseCallbacks,
+        callbacks,
         executor: CodeExecutor | None = None,
         provider: str = "openai",
     ) -> None:
@@ -31,7 +31,7 @@ class AgentLoop:
         self._executor = executor or CodeExecutor()
         # Patch save_plot so inline calls from run_python use the correct output_dir
         _output_dir = state.output_dir
-        def _save_plot(filename: str = "plot.png") -> str:
+        def save_plot(filename: str = "plot.png") -> str:
             import os
             import matplotlib.pyplot as plt
             os.makedirs(_output_dir, exist_ok=True)
@@ -43,28 +43,26 @@ class AgentLoop:
             plt.savefig(path, dpi=120, bbox_inches="tight")
             plt.clf()
             return path
-        self._executor.globals["save_plot"] = _save_plot
+        self._executor.globals["save_plot"] = save_plot
         self._provider = get_provider(provider)
         self._history: list[dict[str, Any]] = []
         self._approx_history_chars: int = 0
 
-    # ── Public ───────────────────────────────────────────────────────────────
-
-    def _append_history(self, entry: dict[str, Any]) -> None:
+    def append_history(self, entry: dict[str, Any]) -> None:
         self._history.append(entry)
         self._approx_history_chars += len(json.dumps(entry))
 
     def run(self) -> None:
         """Run the agent loop until `finish` is called or max_iterations reached."""
-        self._append_history({"role": "user", "content": self._initial_user_message()})
+        self.append_history({"role": "user", "content": self.initial_user_message()})
 
         while not self._state.finished and self._state.iteration < self._state.max_iterations:
             self._state.iteration += 1
-            self._maybe_trim_history()
-            self._maybe_inject_reminder()
+            self.trim_history()
+            self.inject_reminder()
 
             response = self._provider.call(self._history, SYSTEM_PROMPT)
-            self._process_response(response)
+            self.process_response(response)
 
         if not self._state.finished:
             self._callbacks.on_message(
@@ -72,9 +70,7 @@ class AgentLoop:
                 "Stopping without explicit finish."
             )
 
-    # ── Private ──────────────────────────────────────────────────────────────
-
-    def _initial_user_message(self) -> str:
+    def initial_user_message(self) -> str:
         lines = [f"Please help me build a {self._state.task} model."]
 
         if self._state.data_path:
@@ -97,7 +93,7 @@ class AgentLoop:
         ]
         return "\n".join(lines)
 
-    def _process_response(self, response: NormalizedResponse) -> None:
+    def process_response(self, response: NormalizedResponse) -> None:
         for text in response.text_blocks:
             self._callbacks.on_message(text)
 
@@ -105,7 +101,7 @@ class AgentLoop:
             input_preview = json.dumps(tc.input, indent=2)[:500]
             self._callbacks.on_tool_call(tc.name, input_preview)
 
-        self._append_history(self._provider.make_assistant_history_entry(response))
+        self.append_history(self._provider.make_assistant_history_entry(response))
 
         tool_results: list[dict[str, Any]] = []
         inject_stuck_hint = False
@@ -122,11 +118,11 @@ class AgentLoop:
 
         if tool_results:
             for entry in self._provider.make_tool_results_history_entries(tool_results):
-                self._append_history(entry)
+                self.append_history(entry)
 
         # Inject stuck hint as a plain user message — avoids duplicate tool_call_ids
         if inject_stuck_hint:
-            self._append_history({
+            self.append_history({
                 "role": "user",
                 "content": (
                     "[system hint] You have encountered the same error 3 times in a row. "
@@ -137,7 +133,7 @@ class AgentLoop:
         if response.is_done:
             self._state.finished = True
 
-    def _maybe_trim_history(self) -> None:
+    def trim_history(self) -> None:
         """Drop the oldest assistant+tool-results group when history grows large."""
         if self._approx_history_chars < _CONTEXT_TRIM_THRESHOLD * 4 * 0.8:
             return
@@ -182,10 +178,10 @@ class AgentLoop:
             del self._history[i:end]
             return
 
-    def _maybe_inject_reminder(self) -> None:
+    def inject_reminder(self) -> None:
         remaining = self._state.max_iterations - self._state.iteration
         if remaining in (5, 2):
-            self._append_history(
+            self.append_history(
                 {
                     "role": "user",
                     "content": (

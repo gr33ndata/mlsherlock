@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 
 
-def _make_globals() -> dict[str, Any]:
+def make_globals() -> dict[str, Any]:
     """Seed the shared namespace with common ML imports."""
     import matplotlib
     matplotlib.use("Agg")  # non-interactive backend — must come before pyplot import
@@ -65,7 +65,7 @@ class CodeExecutor:
     """
 
     def __init__(self) -> None:
-        self._globals: dict[str, Any] = _make_globals()
+        self._globals: dict[str, Any] = make_globals()
 
     @property
     def globals(self) -> dict[str, Any]:
@@ -88,7 +88,7 @@ class CodeExecutor:
         exec_globals: dict[str, Any] = dict(self._globals)
         result_holder: dict[str, Any] = {"capture": None, "error": ""}
 
-        def _run() -> None:
+        def run_code() -> None:
             cap = ExecutionCapture()
             with cap:
                 try:
@@ -98,7 +98,7 @@ class CodeExecutor:
                     result_holder["error"] = traceback.format_exc()
             result_holder["capture"] = cap
 
-        thread = threading.Thread(target=_run, daemon=True)
+        thread = threading.Thread(target=run_code, daemon=True)
         thread.start()
         thread.join(timeout=timeout)
 

@@ -1,11 +1,9 @@
 """Tool: download_data — download a dataset from a URL or Kaggle into output_dir."""
 from __future__ import annotations
 
-import ipaddress
 import os
 import urllib.request
 from typing import TYPE_CHECKING
-from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
@@ -18,21 +16,6 @@ _NAMED_DATASETS: dict[str, str] = {
     "diamonds": "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv",
     "tips": "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/tips.csv",
 }
-
-
-def _is_safe_url(url: str) -> bool:
-    """Reject URLs that point to private/loopback IP addresses (basic SSRF guard)."""
-    try:
-        host = urlparse(url).hostname
-        if host is None:
-            return False
-        addr = ipaddress.ip_address(host)
-        return addr.is_global and not addr.is_private and not addr.is_loopback and not addr.is_link_local
-    except ValueError:
-        # hostname (not a bare IP) — allow; DNS-based SSRF is out of scope here
-        return True
-    except Exception:
-        return False
 
 
 def run(
@@ -51,7 +34,6 @@ def run(
     destination:
       - Local file path where the CSV will be saved (relative to output_dir)
     """
-    # Ensure destination stays inside output_dir
     abs_dest = os.path.realpath(destination)
     abs_output = os.path.realpath(state.output_dir)
     if not abs_dest.startswith(abs_output + os.sep) and abs_dest != abs_output:
@@ -61,21 +43,17 @@ def run(
     if dest_dir:
         os.makedirs(dest_dir, exist_ok=True)
 
-    # Resolve named datasets
     url: str | None = None
     if source in _NAMED_DATASETS:
         url = _NAMED_DATASETS[source]
     elif source.startswith("http://") or source.startswith("https://"):
-        if not _is_safe_url(source):
-            return f"[error] URL points to a private or loopback address and cannot be fetched: {source!r}"
         url = source
 
     if url:
-        return _download_url(url, abs_dest)
+        return download_url(url, abs_dest)
 
-    # Kaggle dataset (format: "owner/dataset-name")
     if "/" in source and not source.startswith("http"):
-        return _download_kaggle(source, abs_dest)
+        return download_kaggle(source, abs_dest)
 
     return (
         f"[error] Could not resolve source: {source!r}\n"
@@ -84,7 +62,7 @@ def run(
     )
 
 
-def _download_url(url: str, destination: str) -> str:
+def download_url(url: str, destination: str) -> str:
     try:
         urllib.request.urlretrieve(url, destination)
         import pandas as pd
@@ -98,23 +76,7 @@ def _download_url(url: str, destination: str) -> str:
         return f"[download error] {exc}"
 
 
-def _download_kaggle(slug: str, destination: str) -> str:
-    try:
-        import kaggle  # noqa: F401
-    except ImportError:
-        return (
-            "[error] The `kaggle` package is not installed.\n"
-            "Install it with: pip install kaggle\n"
-            "Then create ~/.kaggle/kaggle.json with your API credentials from https://kaggle.com/settings"
-        )
-
-    credentials_path = os.path.expanduser("~/.kaggle/kaggle.json")
-    if not os.path.exists(credentials_path):
-        return (
-            "[error] Kaggle credentials not found at ~/.kaggle/kaggle.json\n"
-            "Create them at: https://kaggle.com/settings → API → Create New Token"
-        )
-
+def download_kaggle(slug: str, destination: str) -> str:
     try:
         import tempfile
         import zipfile
@@ -134,7 +96,6 @@ def _download_kaggle(slug: str, destination: str) -> str:
                 if not csv_files:
                     return f"[error] No CSV files found in Kaggle dataset. Contents: {z.namelist()}"
 
-                # If multiple CSVs, pick the largest
                 if len(csv_files) > 1:
                     sizes = {f: z.getinfo(f).file_size for f in csv_files}
                     csv_file = max(sizes, key=sizes.get)

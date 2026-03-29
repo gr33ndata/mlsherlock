@@ -80,9 +80,9 @@ class OpenAIProvider:
         api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
         org = os.environ.get("OPENAI_ORG_ID") or os.environ.get("OPENAI_ORG")
         self._client = openai.OpenAI(api_key=api_key, organization=org or None)
-        self._schemas = self._convert_schemas(get_tool_schemas())
+        self._schemas = self.convert_schemas(get_tool_schemas())
 
-    def _convert_schemas(self, anthropic_schemas: list[dict]) -> list[dict]:
+    def convert_schemas(self, anthropic_schemas: list[dict]) -> list[dict]:
         return [
             {
                 "type": "function",

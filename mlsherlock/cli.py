@@ -17,7 +17,7 @@ _TARGET_HINTS = [
 ]
 
 
-def _infer_task(csv_path: str, target_col: str, console: "Console") -> str:  # type: ignore[name-defined]
+def infer_task(csv_path: str, target_col: str, console: "Console") -> str:  # type: ignore[name-defined]
     """Infer classification vs regression from the target column."""
     try:
         import csv
@@ -57,7 +57,7 @@ def _infer_task(csv_path: str, target_col: str, console: "Console") -> str:  # t
     return task
 
 
-def _infer_target(csv_path: str, console: "Console") -> str | None:  # type: ignore[name-defined]
+def infer_target(csv_path: str, console: "Console") -> str | None:  # type: ignore[name-defined]
     """Peek at the CSV header and pick the most likely target column."""
     try:
         with open(csv_path, newline="", encoding="utf-8", errors="replace") as f:
@@ -176,12 +176,12 @@ def train(
         data_path = os.path.abspath(data)
         data_source = data_path
         if not target:
-            target = _infer_target(data_path, console)
+            target = infer_target(data_path, console)
             if not target:
                 console.print("[bold red]Error:[/bold red] Could not infer target column. Pass --target explicitly.")
                 sys.exit(1)
         if not task:
-            task = _infer_task(data_path, target, console)
+            task = infer_task(data_path, target, console)
     elif data in _NAMED_DATASETS or ("/" in data and not data.startswith("/")):
         # Named dataset or Kaggle slug — agent will download it
         data_source = data
