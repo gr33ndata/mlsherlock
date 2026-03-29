@@ -45,3 +45,6 @@ output/
 .vscode/
 *.swp
 *.swo
+
+# LLM
+REVIEW.md
