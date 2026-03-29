@@ -37,4 +37,4 @@ def test_output_truncation(executor, state, callbacks):
 
 def test_error_recorded_in_state(executor, state, callbacks):
     run_python.run("raise ValueError('test error')", state, executor, callbacks)
-    assert state._consecutive_same_error >= 1
+    assert state.consecutive_errors >= 1

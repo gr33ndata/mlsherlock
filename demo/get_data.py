@@ -10,7 +10,6 @@ Datasets:
     titanic     891 rows, classification (survived), mix of numeric + categorical + nulls
     housing     506 rows, regression (price), Boston-style housing features
 """
-from __future__ import annotations
 
 import argparse
 import os

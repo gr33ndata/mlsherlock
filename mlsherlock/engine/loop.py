@@ -1,9 +1,10 @@
 """AgentLoop — manages conversation history, provider API calls, and tool dispatch."""
-from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
+import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 
 from mlsherlock.engine.providers import NormalizedResponse, get_provider
@@ -15,7 +16,7 @@ from mlsherlock.tools.registry import dispatch
 load_dotenv()
 
 # Rough token budget — trim history when we approach this
-_CONTEXT_TRIM_THRESHOLD = 150_000
+CONTEXT_TRIM_THRESHOLD = 150_000
 
 
 class AgentLoop:
@@ -32,8 +33,6 @@ class AgentLoop:
         # Patch save_plot so inline calls from run_python use the correct output_dir
         _output_dir = state.output_dir
         def save_plot(filename: str = "plot.png") -> str:
-            import os
-            import matplotlib.pyplot as plt
             os.makedirs(_output_dir, exist_ok=True)
             safe = os.path.basename(filename)
             if not safe.endswith((".png", ".jpg", ".pdf", ".svg")):
@@ -135,7 +134,7 @@ class AgentLoop:
 
     def trim_history(self) -> None:
         """Drop the oldest assistant+tool-results group when history grows large."""
-        if self._approx_history_chars < _CONTEXT_TRIM_THRESHOLD * 4 * 0.8:
+        if self._approx_history_chars < CONTEXT_TRIM_THRESHOLD * 4 * 0.8:
             return
 
         # Find the oldest assistant message that has tool calls, then remove it

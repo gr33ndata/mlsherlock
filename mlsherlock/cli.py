@@ -1,11 +1,13 @@
 """CLI entry point: `mlsh train`."""
-from __future__ import annotations
 
+import csv
 import os
 import sys
 
 import click
 from dotenv import load_dotenv
+
+from mlsherlock.tools.download_data import NAMED_DATASETS
 
 load_dotenv()
 
@@ -20,7 +22,6 @@ _TARGET_HINTS = [
 def infer_task(csv_path: str, target_col: str, console: "Console") -> str:  # type: ignore[name-defined]
     """Infer classification vs regression from the target column."""
     try:
-        import csv
         values = []
         with open(csv_path, newline="", encoding="utf-8", errors="replace") as f:
             reader = csv.DictReader(f)
@@ -164,8 +165,6 @@ def train(
     data_path = ""      # empty = agent will download it
     data_source = ""    # what to tell the agent
 
-    _NAMED_DATASETS = {"titanic", "iris", "penguins", "diamonds", "tips"}
-
     if data is None:
         # No --data given: agent will ask interactively
         data_source = "(none — agent will ask)"
@@ -182,7 +181,7 @@ def train(
                 sys.exit(1)
         if not task:
             task = infer_task(data_path, target, console)
-    elif data in _NAMED_DATASETS or ("/" in data and not data.startswith("/")):
+    elif data in NAMED_DATASETS or ("/" in data and not data.startswith("/")):
         # Named dataset or Kaggle slug — agent will download it
         data_source = data
         if not task:

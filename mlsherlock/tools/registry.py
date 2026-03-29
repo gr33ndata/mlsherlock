@@ -1,16 +1,8 @@
 """Tool registry: schemas (Pydantic → JSON) and dispatcher."""
-from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
-
-if TYPE_CHECKING:
-    from mlsherlock.engine.state import AgentState
-    from mlsherlock.execution.sandbox import CodeExecutor
-
-
-# ── Input schemas ────────────────────────────────────────────────────────────
 
 class RunPythonInput(BaseModel):
     code: str = Field(..., description="Python code to execute in the shared sandbox")
@@ -125,13 +117,7 @@ def get_tool_schemas() -> list[dict[str, Any]]:
 
 # ── Dispatcher ────────────────────────────────────────────────────────────────
 
-def dispatch(
-    name: str,
-    tool_input: dict[str, Any],
-    state: "AgentState",
-    executor: "CodeExecutor",
-    callbacks,
-) -> str:
+def dispatch(name: str, tool_input: dict[str, Any], state, executor, callbacks) -> str:
     """Route a tool call to its implementation and return the result string."""
     from mlsherlock.tools import run_python, read_data, ask_user, save_plot, finish, download_data
 

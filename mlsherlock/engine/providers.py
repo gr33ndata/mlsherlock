@@ -1,10 +1,12 @@
 """LLM provider abstraction — Anthropic and OpenAI."""
-from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
+
+import anthropic
+import openai
 
 from mlsherlock.tools.registry import get_tool_schemas
 
@@ -24,18 +26,14 @@ class NormalizedResponse:
 
 
 class AnthropicProvider:
-    _MODEL = "claude-sonnet-4-6"
-    _MAX_TOKENS = 8096
-
     def __init__(self) -> None:
-        import anthropic
         self._client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         self._schemas = get_tool_schemas()
 
     def call(self, history: list[dict], system_prompt: str) -> NormalizedResponse:
         response = self._client.messages.create(
-            model=self._MODEL,
-            max_tokens=self._MAX_TOKENS,
+            model="claude-sonnet-4-6",
+            max_tokens=8096,
             system=system_prompt,
             tools=self._schemas,
             messages=history,
@@ -72,11 +70,7 @@ class AnthropicProvider:
 
 
 class OpenAIProvider:
-    _MODEL = "gpt-4o"
-    _MAX_TOKENS = 8096
-
     def __init__(self) -> None:
-        import openai
         api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
         org = os.environ.get("OPENAI_ORG_ID") or os.environ.get("OPENAI_ORG")
         self._client = openai.OpenAI(api_key=api_key, organization=org or None)
@@ -98,8 +92,8 @@ class OpenAIProvider:
     def call(self, history: list[dict], system_prompt: str) -> NormalizedResponse:
         messages = [{"role": "system", "content": system_prompt}] + history
         response = self._client.chat.completions.create(
-            model=self._MODEL,
-            max_tokens=self._MAX_TOKENS,
+            model="gpt-4o",
+            max_tokens=8096,
             tools=self._schemas,
             messages=messages,
         )

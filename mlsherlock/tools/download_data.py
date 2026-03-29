@@ -1,15 +1,12 @@
 """Tool: download_data — download a dataset from a URL or Kaggle into output_dir."""
-from __future__ import annotations
 
 import os
+import tempfile
 import urllib.request
-from typing import TYPE_CHECKING
+import zipfile
+import pandas as pd
 
-if TYPE_CHECKING:
-    from mlsherlock.engine.state import AgentState
-
-# Well-known named datasets resolvable without extra packages
-_NAMED_DATASETS: dict[str, str] = {
+NAMED_DATASETS: dict[str, str] = {
     "titanic": "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv",
     "iris": "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv",
     "penguins": "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv",
@@ -18,12 +15,7 @@ _NAMED_DATASETS: dict[str, str] = {
 }
 
 
-def run(
-    source: str,
-    destination: str,
-    state: "AgentState",
-    callbacks,
-) -> str:
+def run(source, destination, state, callbacks) -> str:
     """
     Download a dataset and save it as a CSV file.
 
@@ -44,8 +36,8 @@ def run(
         os.makedirs(dest_dir, exist_ok=True)
 
     url: str | None = None
-    if source in _NAMED_DATASETS:
-        url = _NAMED_DATASETS[source]
+    if source in NAMED_DATASETS:
+        url = NAMED_DATASETS[source]
     elif source.startswith("http://") or source.startswith("https://"):
         url = source
 
@@ -57,7 +49,7 @@ def run(
 
     return (
         f"[error] Could not resolve source: {source!r}\n"
-        f"Use a named dataset ({', '.join(_NAMED_DATASETS)}), "
+        f"Use a named dataset ({', '.join(NAMED_DATASETS)}), "
         f"a direct HTTPS URL, or a Kaggle slug (owner/dataset-name)."
     )
 
@@ -65,7 +57,6 @@ def run(
 def download_url(url: str, destination: str) -> str:
     try:
         urllib.request.urlretrieve(url, destination)
-        import pandas as pd
         df = pd.read_csv(destination)
         return (
             f"Downloaded to: {destination}\n"
@@ -78,10 +69,7 @@ def download_url(url: str, destination: str) -> str:
 
 def download_kaggle(slug: str, destination: str) -> str:
     try:
-        import tempfile
-        import zipfile
         from kaggle.api.kaggle_api_extended import KaggleApiExtended
-
         api = KaggleApiExtended()
         api.authenticate()
 
@@ -105,7 +93,6 @@ def download_kaggle(slug: str, destination: str) -> str:
                 with z.open(csv_file) as src, open(destination, "wb") as dst:
                     dst.write(src.read())
 
-        import pandas as pd
         df = pd.read_csv(destination)
         return (
             f"Downloaded Kaggle dataset {slug!r} ({csv_file}) to: {destination}\n"

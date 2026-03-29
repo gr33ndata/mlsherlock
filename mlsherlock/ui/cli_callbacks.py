@@ -1,6 +1,7 @@
 """CLI adapter — WhatsApp-style chat output with Rich."""
-from __future__ import annotations
 
+import json
+import os
 import re
 from datetime import datetime
 
@@ -9,12 +10,12 @@ from rich.prompt import Prompt
 
 console = Console()
 
-_AGENT_NAME  = "Sherlock"
-_AGENT_COLOR = "bold #C8A951"
-_USER_COLOR  = "bold #6BCB77"
+AGENT_NAME  = "Sherlock"
+AGENT_COLOR = "bold #C8A951"
+USER_COLOR  = "bold #6BCB77"
 
-_RESULT_PREVIEW_LINES = 5
-_RESULT_PREVIEW_CHARS = 400
+RESULT_PREVIEW_LINES = 5
+RESULT_PREVIEW_CHARS = 400
 
 
 def ts() -> str:
@@ -46,7 +47,6 @@ def key_metric_line(result: str) -> str | None:
 
 
 def compact_input(name: str, input_preview: str) -> str:
-    import json
     try:
         d = json.loads(input_preview)
     except Exception:
@@ -67,11 +67,11 @@ def compact_input(name: str, input_preview: str) -> str:
 
 def trim_result(result: str) -> str:
     lines = [l for l in result.splitlines() if l.strip()]
-    preview = "\n".join(lines[:_RESULT_PREVIEW_LINES])
-    if len(lines) > _RESULT_PREVIEW_LINES:
-        preview += f"\n… +{len(lines) - _RESULT_PREVIEW_LINES} more lines"
-    if len(preview) > _RESULT_PREVIEW_CHARS:
-        preview = preview[:_RESULT_PREVIEW_CHARS] + "…"
+    preview = "\n".join(lines[:RESULT_PREVIEW_LINES])
+    if len(lines) > RESULT_PREVIEW_LINES:
+        preview += f"\n… +{len(lines) - RESULT_PREVIEW_LINES} more lines"
+    if len(preview) > RESULT_PREVIEW_CHARS:
+        preview = preview[:RESULT_PREVIEW_CHARS] + "…"
     return preview
 
 
@@ -82,13 +82,13 @@ class CliCallbacks:
 
     def on_message(self, text: str) -> None:
         if self._verbose:
-            console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{ts()}[/dim]")
+            console.print(f"\n[{AGENT_COLOR}]{AGENT_NAME}[/{AGENT_COLOR}]  [dim]{ts()}[/dim]")
             for line in text.strip().splitlines():
                 console.print(f"  {line}")
             console.print()
         else:
             summary = first_sentence(text)
-            console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{ts()}[/dim]")
+            console.print(f"\n[{AGENT_COLOR}]{AGENT_NAME}[/{AGENT_COLOR}]  [dim]{ts()}[/dim]")
             console.print(f"  {summary}")
 
     def on_tool_call(self, name: str, input_preview: str) -> None:
@@ -117,14 +117,14 @@ class CliCallbacks:
             console.print(f"  [dim]auto → {answer}[/dim]")
             return answer
 
-        console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{ts()}[/dim]")
+        console.print(f"\n[{AGENT_COLOR}]{AGENT_NAME}[/{AGENT_COLOR}]  [dim]{ts()}[/dim]")
         console.print(f"  {question}")
         console.print()
         if options:
             for i, opt in enumerate(options, 1):
                 console.print(f"  [dim]{i}.[/dim] {opt}")
             console.print()
-            raw = Prompt.ask(f"[{_USER_COLOR}]You[/{_USER_COLOR}]", default=options[0])
+            raw = Prompt.ask(f"[{USER_COLOR}]You[/{USER_COLOR}]", default=options[0])
             try:
                 idx = int(raw) - 1
                 if 0 <= idx < len(options):
@@ -132,14 +132,13 @@ class CliCallbacks:
             except ValueError:
                 pass
             return raw
-        return Prompt.ask(f"[{_USER_COLOR}]You[/{_USER_COLOR}]")
+        return Prompt.ask(f"[{USER_COLOR}]You[/{USER_COLOR}]")
 
     def on_plot(self, path: str) -> None:
-        import os
         console.print(f"  [dim]📊 {os.path.basename(path)}[/dim]")
 
     def on_finish(self, summary: str, model_path: str) -> None:
-        console.print(f"\n[{_AGENT_COLOR}]{_AGENT_NAME}[/{_AGENT_COLOR}]  [dim]{ts()}[/dim]")
+        console.print(f"\n[{AGENT_COLOR}]{AGENT_NAME}[/{AGENT_COLOR}]  [dim]{ts()}[/dim]")
         console.print(f"  ✅ Done. Model saved to [bold]{model_path}[/bold]\n")
         for line in summary.strip().splitlines():
             console.print(f"  {line}")

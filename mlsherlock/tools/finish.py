@@ -1,22 +1,9 @@
 """Tool: finish — save the model, write a summary, and signal loop exit."""
-from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mlsherlock.engine.state import AgentState
-    from mlsherlock.execution.sandbox import CodeExecutor
 
 
-def run(
-    summary: str,
-    model_variable: str,
-    state: "AgentState",
-    executor: "CodeExecutor",
-    callbacks,
-) -> str:
-    """Persist the model and emit a final summary."""
+def run(summary, model_variable, state, executor, callbacks) -> str:
     if not model_variable.isidentifier():
         return f"[finish error] Invalid model variable name: {model_variable!r}. Must be a plain Python identifier."
 
@@ -35,7 +22,6 @@ print(f"Model saved to {model_path!r}")
     if error:
         return f"[finish error] Could not save model '{model_variable}': {error}"
 
-    # Write summary file
     summary_path = os.path.join(state.output_dir, "summary.txt")
     with open(summary_path, "w") as f:
         f.write(summary)

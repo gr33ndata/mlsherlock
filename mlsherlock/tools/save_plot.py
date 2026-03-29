@@ -1,23 +1,10 @@
 """Tool: save_plot — save the current matplotlib figure to output_dir."""
-from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mlsherlock.engine.state import AgentState
-    from mlsherlock.execution.sandbox import CodeExecutor
 
 
-def run(
-    filename: str,
-    state: "AgentState",
-    executor: "CodeExecutor",
-    callbacks,
-) -> str:
-    """Save the current plt figure to output_dir/filename and return the path."""
+def run(filename, state, executor, callbacks) -> str:
     os.makedirs(state.output_dir, exist_ok=True)
-    # Sanitise filename
     safe_name = os.path.basename(filename)
     if not safe_name.endswith((".png", ".jpg", ".pdf", ".svg")):
         safe_name += ".png"

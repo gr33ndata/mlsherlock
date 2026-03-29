@@ -1,30 +1,17 @@
 """Tool: read_data — profile a CSV and inject the DataFrame into the sandbox."""
-from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from mlsherlock.engine.state import AgentState
-    from mlsherlock.execution.sandbox import CodeExecutor
-
-_MAX_PROFILE_ROWS = 100_000
-_WARN_SIZE_MB = 500
+MAX_PROFILE_ROWS = 100_000
+WARN_SIZE_MB = 500
 
 
-def run(
-    path: str,
-    target_column: str,
-    state: "AgentState",
-    executor: "CodeExecutor",
-    callbacks,
-) -> str:
-    """Load CSV, build a profile, inject `df` and `target` into the sandbox."""
+def run(path, target_column, state, executor, callbacks) -> str:
     if not os.path.exists(path):
         return f"[error] File not found: {path}"
 
     size_mb = os.path.getsize(path) / (1024 ** 2)
-    size_warn = f"\n[warning] File is {size_mb:.1f} MB (>500 MB), profiling first {_MAX_PROFILE_ROWS} rows only." if size_mb > _WARN_SIZE_MB else ""
+    size_warn = f"\n[warning] File is {size_mb:.1f} MB (>500 MB), profiling first {MAX_PROFILE_ROWS} rows only." if size_mb > WARN_SIZE_MB else ""
 
     code = f"""
 import pandas as pd
@@ -32,7 +19,7 @@ import numpy as np
 
 _path = {path!r}
 _target = {target_column!r}
-_max_rows = {_MAX_PROFILE_ROWS}
+_max_rows = {MAX_PROFILE_ROWS}
 
 df = pd.read_csv(_path, nrows=_max_rows)
 target = _target
