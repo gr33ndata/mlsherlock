@@ -8,7 +8,6 @@ from pydantic import BaseModel, ConfigDict, Field
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
     from mlsherlock.execution.sandbox import CodeExecutor
-    from mlsherlock.engine.callbacks import BaseCallbacks
 
 
 # ── Input schemas ────────────────────────────────────────────────────────────
@@ -131,7 +130,7 @@ def dispatch(
     tool_input: dict[str, Any],
     state: "AgentState",
     executor: "CodeExecutor",
-    callbacks: "BaseCallbacks",
+    callbacks,
 ) -> str:
     """Route a tool call to its implementation and return the result string."""
     from mlsherlock.tools import run_python, read_data, ask_user, save_plot, finish, download_data

@@ -1,7 +1,6 @@
 """Shared pytest fixtures."""
 import os
 import pytest
-from mlsherlock.engine.callbacks import BaseCallbacks
 from mlsherlock.engine.state import AgentState
 from mlsherlock.execution.sandbox import CodeExecutor
 
@@ -10,7 +9,7 @@ FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 SAMPLE_CSV = os.path.join(FIXTURES_DIR, "sample.csv")
 
 
-class FakeCallbacks(BaseCallbacks):
+class FakeCallbacks:
     """Captures all callback calls for inspection in tests."""
 
     def __init__(self) -> None:

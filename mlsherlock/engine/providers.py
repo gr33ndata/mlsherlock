@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import os
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -24,22 +23,7 @@ class NormalizedResponse:
     is_done: bool
 
 
-class LLMProvider(ABC):
-    @abstractmethod
-    def call(self, history: list[dict], system_prompt: str) -> NormalizedResponse:
-        ...
-
-    @abstractmethod
-    def make_assistant_history_entry(self, response: NormalizedResponse) -> dict[str, Any]:
-        ...
-
-    @abstractmethod
-    def make_tool_results_history_entries(self, tool_results: list[dict]) -> list[dict[str, Any]]:
-        """Returns list of history entries to append (OpenAI needs one per result)."""
-        ...
-
-
-class AnthropicProvider(LLMProvider):
+class AnthropicProvider:
     _MODEL = "claude-sonnet-4-6"
     _MAX_TOKENS = 8096
 
@@ -87,7 +71,7 @@ class AnthropicProvider(LLMProvider):
         ]}]
 
 
-class OpenAIProvider(LLMProvider):
+class OpenAIProvider:
     _MODEL = "gpt-4o"
     _MAX_TOKENS = 8096
 
@@ -156,7 +140,7 @@ class OpenAIProvider(LLMProvider):
         ]
 
 
-def get_provider(name: str) -> LLMProvider:
+def get_provider(name: str) -> AnthropicProvider | OpenAIProvider:
     if name == "anthropic":
         return AnthropicProvider()
     if name == "openai":

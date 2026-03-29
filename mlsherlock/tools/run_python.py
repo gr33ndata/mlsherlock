@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
     from mlsherlock.execution.sandbox import CodeExecutor
-    from mlsherlock.engine.callbacks import BaseCallbacks
 
 _MAX_OUTPUT_CHARS = 8_000
 _DF_PREVIEW_ROWS = 20
@@ -16,7 +15,7 @@ def run(
     code: str,
     state: "AgentState",
     executor: "CodeExecutor",
-    callbacks: "BaseCallbacks",
+    callbacks,
 ) -> str:
     """Execute *code* and return a text result for the agent."""
     output, error = executor.execute(code)

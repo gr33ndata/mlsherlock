@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
     from mlsherlock.execution.sandbox import CodeExecutor
-    from mlsherlock.engine.callbacks import BaseCallbacks
 
 _MAX_PROFILE_ROWS = 100_000
 _WARN_SIZE_MB = 500
@@ -18,7 +17,7 @@ def run(
     target_column: str,
     state: "AgentState",
     executor: "CodeExecutor",
-    callbacks: "BaseCallbacks",
+    callbacks,
 ) -> str:
     """Load CSV, build a profile, inject `df` and `target` into the sandbox."""
     if not os.path.exists(path):

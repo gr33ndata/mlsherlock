@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
-    from mlsherlock.engine.callbacks import BaseCallbacks
 
 # Well-known named datasets resolvable without extra packages
 _NAMED_DATASETS: dict[str, str] = {
@@ -40,7 +39,7 @@ def run(
     source: str,
     destination: str,
     state: "AgentState",
-    callbacks: "BaseCallbacks",
+    callbacks,
 ) -> str:
     """
     Download a dataset and save it as a CSV file.

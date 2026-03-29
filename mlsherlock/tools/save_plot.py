@@ -7,14 +7,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
     from mlsherlock.execution.sandbox import CodeExecutor
-    from mlsherlock.engine.callbacks import BaseCallbacks
 
 
 def run(
     filename: str,
     state: "AgentState",
     executor: "CodeExecutor",
-    callbacks: "BaseCallbacks",
+    callbacks,
 ) -> str:
     """Save the current plt figure to output_dir/filename and return the path."""
     os.makedirs(state.output_dir, exist_ok=True)

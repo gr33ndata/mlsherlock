@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mlsherlock.engine.state import AgentState
     from mlsherlock.execution.sandbox import CodeExecutor
-    from mlsherlock.engine.callbacks import BaseCallbacks
 
 
 def run(
@@ -15,7 +14,7 @@ def run(
     model_variable: str,
     state: "AgentState",
     executor: "CodeExecutor",
-    callbacks: "BaseCallbacks",
+    callbacks,
 ) -> str:
     """Persist the model and emit a final summary."""
     if not model_variable.isidentifier():

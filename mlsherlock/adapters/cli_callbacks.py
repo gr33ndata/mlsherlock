@@ -7,8 +7,6 @@ from datetime import datetime
 from rich.console import Console
 from rich.prompt import Prompt
 
-from mlsherlock.engine.callbacks import BaseCallbacks
-
 console = Console()
 
 _AGENT_NAME  = "Sherlock"
@@ -77,7 +75,7 @@ def _trim_result(result: str) -> str:
     return preview
 
 
-class CliCallbacks(BaseCallbacks):
+class CliCallbacks:
     def __init__(self, non_interactive: bool = False, verbose: bool = False) -> None:
         self._non_interactive = non_interactive
         self._verbose = verbose

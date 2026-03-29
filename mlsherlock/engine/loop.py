@@ -2,15 +2,13 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 from dotenv import load_dotenv
 
-from mlsherlock.engine.callbacks import BaseCallbacks
-from mlsherlock.engine.providers import LLMProvider, NormalizedResponse, get_provider
+from mlsherlock.engine.providers import NormalizedResponse, get_provider
 from mlsherlock.engine.state import AgentState
-from mlsherlock.engine.system_prompt import get_system_prompt
+from mlsherlock.engine.system_prompt import SYSTEM_PROMPT
 from mlsherlock.execution.sandbox import CodeExecutor
 from mlsherlock.tools.registry import dispatch
 
@@ -46,7 +44,7 @@ class AgentLoop:
             plt.clf()
             return path
         self._executor.globals["save_plot"] = _save_plot
-        self._provider: LLMProvider = get_provider(provider)
+        self._provider = get_provider(provider)
         self._history: list[dict[str, Any]] = []
         self._approx_history_chars: int = 0
 
@@ -65,7 +63,7 @@ class AgentLoop:
             self._maybe_trim_history()
             self._maybe_inject_reminder()
 
-            response = self._provider.call(self._history, get_system_prompt())
+            response = self._provider.call(self._history, SYSTEM_PROMPT)
             self._process_response(response)
 
         if not self._state.finished:

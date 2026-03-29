@@ -80,7 +80,3 @@ Maximum iterations: respect the configured limit. If you reach it, call `finish`
 - After tool result: 1-3 sentences interpreting what you see.
 - Do not repeat raw numbers back — interpret them.
 """
-
-
-def get_system_prompt() -> str:
-    return SYSTEM_PROMPT
