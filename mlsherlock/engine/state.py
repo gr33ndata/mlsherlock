@@ -2,7 +2,7 @@
 
 import hashlib
 from dataclasses import dataclass
-from typing import Optional
+from typing import Literal
 
 
 @dataclass
@@ -10,7 +10,7 @@ class AgentState:
     # Session config
     data_path: str = ""
     target_column: str = ""
-    task: str = "classification"  # "classification" | "regression"
+    task: Literal["classification", "regression"] = "classification"
     output_dir: str = "./output"
     max_iterations: int = 20
 
