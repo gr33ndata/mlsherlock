@@ -7,7 +7,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 
-from mlsherlock.engine.providers import NormalizedResponse, get_provider
+from mlsherlock.engine.providers import AnthropicProvider, NormalizedResponse, OpenAIProvider
 from mlsherlock.engine.state import AgentState
 from mlsherlock.engine.system_prompt import SYSTEM_PROMPT
 from mlsherlock.execution.sandbox import CodeExecutor
@@ -25,7 +25,7 @@ class AgentLoop:
         state: AgentState,
         callbacks,
         executor: CodeExecutor | None = None,
-        provider: str = "openai",
+        provider: AnthropicProvider | OpenAIProvider = None,
     ) -> None:
         self._state = state
         self._callbacks = callbacks
@@ -43,7 +43,7 @@ class AgentLoop:
             plt.clf()
             return path
         self._executor.globals["save_plot"] = save_plot
-        self._provider = get_provider(provider)
+        self._provider = provider
         self._history: list[dict[str, Any]] = []
         self._approx_history_chars: int = 0
 

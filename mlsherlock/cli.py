@@ -205,6 +205,7 @@ def train(
     from mlsherlock.engine.loop import AgentLoop
     from mlsherlock.engine.state import AgentState
     from mlsherlock.execution.sandbox import CodeExecutor
+    from mlsherlock.engine.providers import AnthropicProvider, OpenAIProvider
 
     state = AgentState(
         data_path=data_path,
@@ -215,8 +216,9 @@ def train(
     )
     callbacks = CliCallbacks(non_interactive=non_interactive, verbose=verbose)
     executor = CodeExecutor()
+    llm = AnthropicProvider() if provider == "anthropic" else OpenAIProvider()
 
-    loop = AgentLoop(state=state, callbacks=callbacks, executor=executor, provider=provider)
+    loop = AgentLoop(state=state, callbacks=callbacks, executor=executor, provider=llm)
 
     try:
         loop.run()

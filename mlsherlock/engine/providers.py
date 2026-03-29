@@ -132,11 +132,3 @@ class OpenAIProvider:
             {"role": "tool", "tool_call_id": r["tool_call_id"], "content": r["content"]}
             for r in tool_results
         ]
-
-
-def get_provider(name: str) -> AnthropicProvider | OpenAIProvider:
-    if name == "anthropic":
-        return AnthropicProvider()
-    if name == "openai":
-        return OpenAIProvider()
-    raise ValueError(f"Unknown provider: {name!r}. Choose 'anthropic' or 'openai'.")
