@@ -202,7 +202,7 @@ def train(
     console.print(f"  Interactive:  [bold]{'no' if non_interactive else 'yes'}[/bold]")
     console.print(Rule(style="cyan"))
 
-    from mlsherlock.adapters.cli_callbacks import CliCallbacks
+    from mlsherlock.ui.cli_callbacks import CliCallbacks
     from mlsherlock.engine.loop import AgentLoop
     from mlsherlock.engine.state import AgentState
     from mlsherlock.execution.sandbox import CodeExecutor
